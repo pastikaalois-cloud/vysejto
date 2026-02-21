@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a3a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Semínka">
+<link rel="manifest" href="./manifest.json">
+<title>Zahradní deník 🌱</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --soil:     #1a2e10;
+  --bark:     #2c4a1e;
+  --moss:     #3d6b28;
+  --leaf:     #5a9e3a;
+  --sprout:   #7ec850;
+  --sun:      #f0c040;
+  --petal:    #e8856a;
+  --cream:    #f5eed8;
+  --paper:    #faf6ec;
+  --ink:      #1a2e10;
+  --mist:     rgba(255,255,255,0.06);
+  --radius:   16px;
+  --shadow:   0 4px 24px rgba(0,0,0,0.35);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--soil);
+  color: var(--cream);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Organic background texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(93,158,58,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 80% 80%, rgba(44,74,30,0.3) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 60% 30%, rgba(240,192,64,0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app { position: relative; z-index: 1; max-width: 430px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
+
+/* Header */
+header {
+  padding: 52px 24px 20px;
+  position: relative;
+}
+.header-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.app-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--cream);
+}
+.app-subtitle {
+  font-size: 13px;
+  color: var(--sprout);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 4px;
+  font-weight: 500;
+}
+.header-icon { font-size: 36px; line-height: 1; }
+
+/* Season strip */
+.season-strip {
+  display: flex;
+  gap: 8px;
+  padding: 0 24px 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.season-strip::-webkit-scrollbar { display: none; }
+.season-btn {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  background: var(--mist);
+  color: rgba(245,238,216,0.6);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.season-btn.active {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Nav tabs */
+nav {
+  display: flex;
+  gap: 4px;
+  padding: 0 24px 16px;
+}
+.nav-btn {
+  flex: 1;
+  padding: 10px 4px;
+  border-radius: 12px;
+  border: none;
+  background: var(--mist);
+  color: rgba(245,238,216,0.5);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.nav-btn .icon { font-size: 20px; }
+.nav-btn.active {
+  background: rgba(90,158,58,0.25);
+  color: var(--sprout);
+  font-weight: 500;
+}
+
+/* Main content */
+main { flex: 1; padding: 0 16px 100px; }
+
+/* View */
+.view { display: none; }
+.view.active { display: block; }
+
+/* Cards */
+.card {
+  background: rgba(44,74,30,0.4);
+  border: 1px solid rgba(90,158,58,0.2);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--leaf), transparent);
+}
+
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.plant-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cream);
+}
+.plant-emoji { font-size: 28px; }
+
+.status-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.badge-seed    { background: rgba(240,192,64,0.2);  color: var(--sun);    border: 1px solid rgba(240,192,64,0.3); }
+.badge-sprout  { background: rgba(126,200,80,0.2);  color: var(--sprout); border: 1px solid rgba(126,200,80,0.3); }
+.badge-planted { background: rgba(93,158,58,0.3);   color: #8fde5d;       border: 1px solid rgba(93,158,58,0.4); }
+.badge-outside { background: rgba(232,133,106,0.2); color: var(--petal);  border: 1px solid rgba(232,133,106,0.3); }
+.badge-done    { background: rgba(255,255,255,0.08); color: rgba(245,238,216,0.4); border: 1px solid rgba(255,255,255,0.1); }
+
+.timeline { display: flex; flex-direction: column; gap: 6px; }
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.timeline-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-done   { background: var(--sprout); }
+.dot-future { background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.3); }
+.dot-next   { background: var(--sun); box-shadow: 0 0 6px var(--sun); }
+
+.timeline-label { color: rgba(245,238,216,0.6); min-width: 80px; }
+.timeline-date  { color: var(--cream); font-weight: 500; }
+.timeline-note  { color: rgba(245,238,216,0.4); font-size: 11px; margin-left: auto; }
+
+.card-actions { display: flex; gap: 8px; margin-top: 14px; }
+.btn-action {
+  flex: 1;
+  padding: 9px;
+  border-radius: 10px;
+  border: 1px solid rgba(90,158,58,0.3);
+  background: rgba(90,158,58,0.12);
+  color: var(--sprout);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-action:hover, .btn-action:active { background: rgba(90,158,58,0.25); }
+.btn-action.primary {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+}
+.btn-danger {
+  background: rgba(232,133,106,0.12);
+  border-color: rgba(232,133,106,0.3);
+  color: var(--petal);
+}
+
+/* Add button */
+.fab {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--leaf), var(--sprout));
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(90,158,58,0.5);
+  z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s;
+}
+.fab:active { transform: scale(0.93); }
+
+/* Bottom nav */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(20,36,12,0.95);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(90,158,58,0.15);
+  display: flex;
+  z-index: 90;
+  max-width: 430px;
+  margin: 0 auto;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+}
+.bottom-nav-btn {
+  flex: 1;
+  padding: 12px 4px 16px;
+  border: none;
+  background: none;
+  color: rgba(245,238,216,0.4);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: color 0.2s;
+}
+.bottom-nav-btn .bicon { font-size: 22px; }
+.bottom-nav-btn.active { color: var(--sprout); }
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,20,6,0.85);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #1e3812;
+  border: 1px solid rgba(90,158,58,0.3);
+  border-radius: 24px 24px 0 0;
+  padding: 24px 24px 40px;
+  width: 100%;
+  max-width: 430px;
+  max-height: 90dvh;
+  overflow-y: auto;
+  animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.modal-handle {
+  width: 40px; height: 4px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+.modal-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  margin-bottom: 20px;
+  color: var(--cream);
+}
+
+/* Form */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; color: var(--sprout); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500; margin-bottom: 6px; display: block; }
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(90,158,58,0.25);
+  background: rgba(255,255,255,0.06);
+  color: var(--cream);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.form-input:focus, .form-select:focus { border-color: var(--leaf); }
+.form-select option { background: #1e3812; color: var(--cream); }
+.form-row { display: flex; gap: 10px; }
+.form-row .form-group { flex: 1; }
+.emoji-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+.emoji-opt {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  font-size: 22px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.emoji-opt.selected { border-color: var(--leaf); background: rgba(90,158,58,0.25); }
+
+.btn-submit {
+  width: 100%;
+  padding: 15px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, var(--moss), var(--leaf));
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: opacity 0.2s;
+}
+.btn-submit:active { opacity: 0.85; }
+
+/* Calendar view */
+.month-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.month-card {
+  background: rgba(44,74,30,0.35);
+  border: 1px solid rgba(90,158,58,0.15);
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.month-card:active { transform: scale(0.97); }
+.month-card.has-events { border-color: rgba(90,158,58,0.4); }
+.month-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  color: var(--cream);
+  margin-bottom: 8px;
+}
+.month-dots { display: flex; gap: 4px; flex-wrap: wrap; }
+.month-dot { font-size: 16px; }
+.month-count { font-size: 11px; color: rgba(245,238,216,0.4); margin-top: 4px; }
+
+/* Notifications view */
+.notif-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: rgba(44,74,30,0.4);
+  border: 1px solid rgba(90,158,58,0.2);
+  border-radius: 14px;
+  margin-bottom: 10px;
+}
+.notif-icon { font-size: 28px; flex-shrink: 0; }
+.notif-text { flex: 1; }
+.notif-title { font-size: 14px; font-weight: 500; color: var(--cream); margin-bottom: 2px; }
+.notif-sub   { font-size: 12px; color: rgba(245,238,216,0.5); }
+.notif-days  { font-size: 13px; font-weight: 500; }
+.notif-days.urgent { color: var(--petal); }
+.notif-days.soon   { color: var(--sun); }
+.notif-days.ok     { color: var(--sprout); }
+
+/* Stats */
+.stats-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.stat-card {
+  flex: 1;
+  background: rgba(44,74,30,0.4);
+  border: 1px solid rgba(90,158,58,0.2);
+  border-radius: 14px;
+  padding: 14px;
+  text-align: center;
+}
+.stat-num { font-family: 'Playfair Display', serif; font-size: 32px; color: var(--sprout); }
+.stat-label { font-size: 11px; color: rgba(245,238,216,0.5); margin-top: 2px; }
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: rgba(245,238,216,0.35);
+}
+.empty-icon { font-size: 56px; margin-bottom: 14px; }
+.empty-title { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 8px; color: rgba(245,238,216,0.5); }
+.empty-sub { font-size: 14px; line-height: 1.5; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--leaf);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.3s;
+  pointer-events: none;
+  z-index: 300;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(90,158,58,0.5);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Status action row */
+.status-action {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+  margin-top: 12px;
+}
+.status-action::-webkit-scrollbar { display: none; }
+.status-pill {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1.5px solid;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--leaf), var(--sprout));
+  transition: width 0.5s ease;
+}
+
+/* Section header */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+.section-title { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--cream); }
+.section-count { font-size: 12px; color: rgba(245,238,216,0.4); }
+
+/* Filter chips */
+.filter-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 0 14px;
+}
+.filter-chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(90,158,58,0.2);
+  background: transparent;
+  color: rgba(245,238,216,0.5);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.chip.active { background: rgba(90,158,58,0.25); border-color: var(--leaf); color: var(--sprout); }
+
+/* Notification permission bar */
+.notif-bar {
+  margin: 0 16px 12px;
+  padding: 12px 16px;
+  background: rgba(240,192,64,0.12);
+  border: 1px solid rgba(240,192,64,0.25);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(245,238,216,0.8);
+}
+.notif-bar button {
+  margin-left: auto;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: var(--sun);
+  color: var(--soil);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <!-- Header -->
+  <header>
+    <div class="header-top">
+      <div>
+        <div class="app-subtitle">Zahradní deník</div>
+        <div class="app-title">Moje semínka</div>
+      </div>
+      <div class="header-icon">🌱</div>
+    </div>
+  </header>
+
+  <!-- Notification permission bar -->
+  <div class="notif-bar" id="notifBar" style="display:none">
+    🔔 Povolte notifikace pro připomínky
+    <button onclick="requestNotifPermission()">Povolit</button>
+  </div>
+
+  <!-- Filter chips -->
+  <div class="filter-chips" id="filterChips" style="padding-left:16px;padding-right:16px;display:none">
+    <button class="chip active" onclick="filterPlants('all', this)">Vše</button>
+    <button class="chip" onclick="filterPlants('seed', this)">🌰 Zaseto</button>
+    <button class="chip" onclick="filterPlants('sprout', this)">🌿 Vzchází</button>
+    <button class="chip" onclick="filterPlants('planted', this)">🪴 Předsazeno</button>
+    <button class="chip" onclick="filterPlants('outside', this)">🌞 Venku</button>
+    <button class="chip" onclick="filterPlants('done', this)">✅ Hotovo</button>
+  </div>
+
+  <!-- Main views -->
+  <main>
+    <!-- PLANTS VIEW -->
+    <div class="view active" id="view-plants">
+      <div id="plantsList"></div>
+    </div>
+
+    <!-- CALENDAR VIEW -->
+    <div class="view" id="view-calendar">
+      <div class="month-grid" id="monthGrid"></div>
+    </div>
+
+    <!-- NOTIFICATIONS VIEW -->
+    <div class="view" id="view-notifs">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-num" id="statTotal">0</div>
+          <div class="stat-label">Celkem rostlin</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statActive">0</div>
+          <div class="stat-label">Aktivních</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statUpcoming">0</div>
+          <div class="stat-label">Brzy akce</div>
+        </div>
+      </div>
+      <div class="section-header">
+        <div class="section-title">Nadcházející akce</div>
+      </div>
+      <div id="notifsList"></div>
+    </div>
+  </main>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openAddModal()" id="fab">＋</button>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <button class="bottom-nav-btn active" onclick="showView('plants', this)">
+    <span class="bicon">🌱</span>Moje rostliny
+  </button>
+  <button class="bottom-nav-btn" onclick="showView('calendar', this)">
+    <span class="bicon">📅</span>Kalendář
+  </button>
+  <button class="bottom-nav-btn" onclick="showView('notifs', this)">
+    <span class="bicon">🔔</span>Připomínky
+  </button>
+</nav>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">Přidat rostlinu</div>
+
+    <div class="form-group">
+      <label class="form-label">Emoji</label>
+      <div class="emoji-picker" id="emojiPicker">
+        <div class="emoji-opt selected" data-emoji="🌱" onclick="selectEmoji(this)">🌱</div>
+        <div class="emoji-opt" data-emoji="🍅" onclick="selectEmoji(this)">🍅</div>
+        <div class="emoji-opt" data-emoji="🥕" onclick="selectEmoji(this)">🥕</div>
+        <div class="emoji-opt" data-emoji="🥒" onclick="selectEmoji(this)">🥒</div>
+        <div class="emoji-opt" data-emoji="🫑" onclick="selectEmoji(this)">🫑</div>
+        <div class="emoji-opt" data-emoji="🌶️" onclick="selectEmoji(this)">🌶️</div>
+        <div class="emoji-opt" data-emoji="🧅" onclick="selectEmoji(this)">🧅</div>
+        <div class="emoji-opt" data-emoji="🥬" onclick="selectEmoji(this)">🥬</div>
+        <div class="emoji-opt" data-emoji="🌿" onclick="selectEmoji(this)">🌿</div>
+        <div class="emoji-opt" data-emoji="🌻" onclick="selectEmoji(this)">🌻</div>
+        <div class="emoji-opt" data-emoji="🍓" onclick="selectEmoji(this)">🍓</div>
+        <div class="emoji-opt" data-emoji="🫛" onclick="selectEmoji(this)">🫛</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Název rostliny</label>
+      <input type="text" class="form-input" id="inputName" placeholder="např. Rajče cherry">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Odrůda (volitelně)</label>
+      <input type="text" class="form-input" id="inputVariety" placeholder="např. Sungold F1">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">🌰 Výsev</label>
+        <input type="date" class="form-input" id="inputSeedDate">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🌿 Předsazení</label>
+        <input type="date" class="form-input" id="inputTransplantDate">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">🌞 Ven (po 15/5)</label>
+        <input type="date" class="form-input" id="inputOutsideDate">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Aktuální stav</label>
+        <select class="form-select" id="inputStatus">
+          <option value="planned">📋 Naplánováno</option>
+          <option value="seed">🌰 Zaseto</option>
+          <option value="sprout">🌿 Vzchází</option>
+          <option value="planted">🪴 Předsazeno</option>
+          <option value="outside">🌞 Venku</option>
+          <option value="done">✅ Sklizeno</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Poznámka</label>
+      <input type="text" class="form-input" id="inputNote" placeholder="Volné poznámky...">
+    </div>
+
+    <button class="btn-submit" onclick="savePlant()">Uložit rostlinu</button>
+    <button class="btn-submit" onclick="closeModal()" style="margin-top:8px;background:rgba(255,255,255,0.06);font-size:14px;padding:12px">Zrušit</button>
+  </div>
+</div>
+
+<!-- Month detail modal -->
+<div class="modal-overlay" id="monthModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="monthModalTitle"></div>
+    <div id="monthModalContent"></div>
+    <button class="btn-submit" onclick="closeMonthModal()" style="margin-top:8px;background:rgba(255,255,255,0.06);font-size:14px;padding:12px">Zavřít</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+const MONTHS = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+
+const STATUS_INFO = {
+  planned:   { label: 'Naplánováno', emoji: '📋', badge: 'badge-done' },
+  seed:      { label: 'Zaseto',      emoji: '🌰', badge: 'badge-seed' },
+  sprout:    { label: 'Vzchází',     emoji: '🌿', badge: 'badge-sprout' },
+  planted:   { label: 'Předsazeno', emoji: '🪴', badge: 'badge-planted' },
+  outside:   { label: 'Venku',       emoji: '🌞', badge: 'badge-outside' },
+  done:      { label: 'Sklizeno',    emoji: '✅', badge: 'badge-done' },
+};
+
+const STATUS_ORDER = ['planned','seed','sprout','planted','outside','done'];
+
+let plants = JSON.parse(localStorage.getItem('seminka_plants') || '[]');
+let editingId = null;
+let currentFilter = 'all';
+let selectedEmoji = '🌱';
+let currentView = 'plants';
+
+function save() {
+  localStorage.setItem('seminka_plants', JSON.stringify(plants));
+  scheduleNotifications();
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+
+// ─── VIEWS ────────────────────────────────────────────────────────────────────
+function showView(name, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  btn.classList.add('active');
+  currentView = name;
+
+  const fab = document.getElementById('fab');
+  const chips = document.getElementById('filterChips');
+
+  if (name === 'plants') {
+    fab.style.display = 'flex';
+    chips.style.display = 'flex';
+    renderPlants();
+  } else if (name === 'calendar') {
+    fab.style.display = 'none';
+    chips.style.display = 'none';
+    renderCalendar();
+  } else {
+    fab.style.display = 'none';
+    chips.style.display = 'none';
+    renderNotifs();
+  }
+}
+
+// ─── PLANTS ───────────────────────────────────────────────────────────────────
+function filterPlants(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  renderPlants();
+}
+
+function renderPlants() {
+  const list = document.getElementById('plantsList');
+  let filtered = plants;
+  if (currentFilter !== 'all') filtered = plants.filter(p => p.status === currentFilter);
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty">
+      <div class="empty-icon">${currentFilter === 'all' ? '🪴' : STATUS_INFO[currentFilter]?.emoji || '🌱'}</div>
+      <div class="empty-title">${currentFilter === 'all' ? 'Zatím žádné rostliny' : 'Žádné rostliny v tomto stavu'}</div>
+      <div class="empty-sub">${currentFilter === 'all' ? 'Klikni na + a přidej první semínko!' : 'Zkus jiný filtr.'}</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(p => plantCard(p)).join('');
+}
+
+function plantCard(p) {
+  const si = STATUS_INFO[p.status] || STATUS_INFO['planned'];
+  const progress = (STATUS_ORDER.indexOf(p.status) / (STATUS_ORDER.length - 1)) * 100;
+
+  const timelineItems = [
+    { label: 'Výsev', date: p.seedDate, key: 'seed' },
+    { label: 'Předsazení', date: p.transplantDate, key: 'planted' },
+    { label: 'Ven', date: p.outsideDate, key: 'outside' },
+  ].filter(t => t.date);
+
+  const nowIdx = STATUS_ORDER.indexOf(p.status);
+
+  const timelineHtml = timelineItems.map(t => {
+    const keyIdx = STATUS_ORDER.indexOf(t.key);
+    let dotClass = 'dot-future';
+    if (keyIdx < nowIdx) dotClass = 'dot-done';
+    else if (keyIdx === nowIdx) dotClass = 'dot-next';
+    const daysLeft = t.date ? daysUntil(t.date) : null;
+    let note = '';
+    if (daysLeft !== null) {
+      if (daysLeft < 0) note = `před ${-daysLeft} dny`;
+      else if (daysLeft === 0) note = 'dnes!';
+      else if (daysLeft === 1) note = 'zítra!';
+      else note = `za ${daysLeft} dní`;
+    }
+    return `<div class="timeline-item">
+      <div class="timeline-dot ${dotClass}"></div>
+      <span class="timeline-label">${t.label}</span>
+      <span class="timeline-date">${fmtDate(t.date)}</span>
+      <span class="timeline-note">${note}</span>
+    </div>`;
+  }).join('');
+
+  const nextActions = getNextActions(p);
+  const actionPills = nextActions.map(a =>
+    `<button class="status-pill" style="border-color:${a.color};color:${a.color};background:${a.bg}" onclick="markStatus('${p.id}','${a.status}')">${a.emoji} ${a.label}</button>`
+  ).join('');
+
+  return `<div class="card" id="card-${p.id}">
+    <div class="card-header">
+      <div>
+        <div class="plant-name">${p.emoji} ${p.name}</div>
+        ${p.variety ? `<div style="font-size:12px;color:rgba(245,238,216,0.45);margin-top:2px">${p.variety}</div>` : ''}
+      </div>
+      <span class="badge ${si.badge}">${si.emoji} ${si.label}</span>
+    </div>
+
+    ${timelineHtml ? `<div class="timeline">${timelineHtml}</div>` : ''}
+
+    <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+
+    ${actionPills ? `<div class="status-action">${actionPills}</div>` : ''}
+
+    ${p.note ? `<div style="margin-top:10px;font-size:12px;color:rgba(245,238,216,0.4);padding:8px;background:rgba(0,0,0,0.15);border-radius:8px">📝 ${p.note}</div>` : ''}
+
+    <div class="card-actions">
+      <button class="btn-action" onclick="openEdit('${p.id}')">✏️ Upravit</button>
+      <button class="btn-action btn-danger" onclick="deletePlant('${p.id}')">🗑️ Smazat</button>
+    </div>
+  </div>`;
+}
+
+function getNextActions(p) {
+  const actions = [];
+  const idx = STATUS_ORDER.indexOf(p.status);
+  const next = STATUS_ORDER[idx + 1];
+  if (!next || next === 'done') {
+    if (p.status !== 'done') actions.push({ status: 'done', emoji: '✅', label: 'Sklizeno', color: '#7ec850', bg: 'rgba(126,200,80,0.12)' });
+    return actions;
+  }
+  const map = {
+    planned:  { emoji: '🌰', label: 'Zaseto',     color: '#f0c040', bg: 'rgba(240,192,64,0.12)' },
+    seed:     { emoji: '🌿', label: 'Vzchází',    color: '#7ec850', bg: 'rgba(126,200,80,0.12)' },
+    sprout:   { emoji: '🪴', label: 'Předsazeno', color: '#8fde5d', bg: 'rgba(143,222,93,0.12)' },
+    planted:  { emoji: '🌞', label: 'Ven',        color: '#e8856a', bg: 'rgba(232,133,106,0.12)' },
+    outside:  { emoji: '✅', label: 'Sklizeno',   color: '#7ec850', bg: 'rgba(126,200,80,0.12)' },
+  };
+  if (map[p.status]) actions.push({ status: next, ...map[p.status] });
+  return actions;
+}
+
+function markStatus(id, status) {
+  const p = plants.find(p => p.id === id);
+  if (!p) return;
+  p.status = status;
+  // auto-fill dates
+  const today = new Date().toISOString().slice(0,10);
+  if (status === 'seed' && !p.seedDate) p.seedDate = today;
+  if (status === 'planted' && !p.transplantDate) p.transplantDate = today;
+  if (status === 'outside' && !p.outsideDate) p.outsideDate = today;
+  save();
+  renderPlants();
+  showToast(`${p.emoji} ${p.name} → ${STATUS_INFO[status].label}`);
+}
+
+function deletePlant(id) {
+  if (!confirm('Opravdu smazat tuto rostlinu?')) return;
+  plants = plants.filter(p => p.id !== id);
+  save();
+  renderPlants();
+  showToast('Rostlina smazána');
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Přidat rostlinu';
+  document.getElementById('inputName').value = '';
+  document.getElementById('inputVariety').value = '';
+  document.getElementById('inputNote').value = '';
+  document.getElementById('inputSeedDate').value = '';
+  document.getElementById('inputTransplantDate').value = '';
+  document.getElementById('inputOutsideDate').value = '';
+  document.getElementById('inputStatus').value = 'planned';
+  selectEmojiVal('🌱');
+  document.getElementById('addModal').classList.add('open');
+}
+
+function openEdit(id) {
+  const p = plants.find(p => p.id === id);
+  if (!p) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Upravit rostlinu';
+  document.getElementById('inputName').value = p.name || '';
+  document.getElementById('inputVariety').value = p.variety || '';
+  document.getElementById('inputNote').value = p.note || '';
+  document.getElementById('inputSeedDate').value = p.seedDate || '';
+  document.getElementById('inputTransplantDate').value = p.transplantDate || '';
+  document.getElementById('inputOutsideDate').value = p.outsideDate || '';
+  document.getElementById('inputStatus').value = p.status || 'planned';
+  selectEmojiVal(p.emoji || '🌱');
+  document.getElementById('addModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('addModal').classList.remove('open');
+}
+
+function selectEmoji(el) {
+  document.querySelectorAll('.emoji-opt').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedEmoji = el.dataset.emoji;
+}
+
+function selectEmojiVal(val) {
+  document.querySelectorAll('.emoji-opt').forEach(e => {
+    e.classList.toggle('selected', e.dataset.emoji === val);
+  });
+  selectedEmoji = val;
+}
+
+function savePlant() {
+  const name = document.getElementById('inputName').value.trim();
+  if (!name) { showToast('Zadej název rostliny!'); return; }
+
+  const data = {
+    id: editingId || uid(),
+    emoji: selectedEmoji,
+    name,
+    variety: document.getElementById('inputVariety').value.trim(),
+    note: document.getElementById('inputNote').value.trim(),
+    seedDate: document.getElementById('inputSeedDate').value,
+    transplantDate: document.getElementById('inputTransplantDate').value,
+    outsideDate: document.getElementById('inputOutsideDate').value,
+    status: document.getElementById('inputStatus').value,
+    createdAt: editingId ? plants.find(p=>p.id===editingId)?.createdAt : new Date().toISOString(),
+  };
+
+  if (editingId) {
+    plants = plants.map(p => p.id === editingId ? data : p);
+  } else {
+    plants.push(data);
+  }
+  save();
+  closeModal();
+  renderPlants();
+  showToast(editingId ? `${data.emoji} ${data.name} upraveno` : `${data.emoji} ${data.name} přidáno!`);
+}
+
+// ─── CALENDAR ─────────────────────────────────────────────────────────────────
+function renderCalendar() {
+  const grid = document.getElementById('monthGrid');
+  const year = new Date().getFullYear();
+
+  grid.innerHTML = MONTHS.map((m, i) => {
+    const monthPlants = plants.filter(p => {
+      const dates = [p.seedDate, p.transplantDate, p.outsideDate].filter(Boolean);
+      return dates.some(d => {
+        const dt = new Date(d);
+        return dt.getFullYear() === year && dt.getMonth() === i;
+      });
+    });
+    const emojis = [...new Set(monthPlants.map(p=>p.emoji))].slice(0,6);
+    const hasEvents = monthPlants.length > 0;
+    return `<div class="month-card ${hasEvents?'has-events':''}" onclick="openMonthModal(${i})">
+      <div class="month-name">${m}</div>
+      <div class="month-dots">${emojis.map(e=>`<span class="month-dot">${e}</span>`).join('') || '<span style="color:rgba(245,238,216,0.2);font-size:12px">–</span>'}</div>
+      <div class="month-count">${monthPlants.length ? monthPlants.length + ' rostlin' : 'nic naplánováno'}</div>
+    </div>`;
+  }).join('');
+}
+
+function openMonthModal(monthIdx) {
+  const year = new Date().getFullYear();
+  const m = MONTHS[monthIdx];
+  const monthPlants = plants.filter(p => {
+    const dates = [p.seedDate, p.transplantDate, p.outsideDate].filter(Boolean);
+    return dates.some(d => {
+      const dt = new Date(d);
+      return dt.getFullYear() === year && dt.getMonth() === monthIdx;
+    });
+  });
+
+  document.getElementById('monthModalTitle').textContent = m + ' ' + year;
+
+  if (monthPlants.length === 0) {
+    document.getElementById('monthModalContent').innerHTML = '<div style="text-align:center;padding:24px;color:rgba(245,238,216,0.4)">Žádné plánované akce</div>';
+  } else {
+    document.getElementById('monthModalContent').innerHTML = monthPlants.map(p => {
+      const events = [];
+      if (p.seedDate && new Date(p.seedDate).getMonth() === monthIdx) events.push(`🌰 Výsev: ${fmtDate(p.seedDate)}`);
+      if (p.transplantDate && new Date(p.transplantDate).getMonth() === monthIdx) events.push(`🌿 Předsazení: ${fmtDate(p.transplantDate)}`);
+      if (p.outsideDate && new Date(p.outsideDate).getMonth() === monthIdx) events.push(`🌞 Ven: ${fmtDate(p.outsideDate)}`);
+      return `<div style="margin-bottom:12px;padding:12px;background:rgba(255,255,255,0.04);border-radius:12px">
+        <div style="font-family:'Playfair Display',serif;font-size:15px;margin-bottom:6px">${p.emoji} ${p.name}</div>
+        ${events.map(e=>`<div style="font-size:13px;color:rgba(245,238,216,0.6);margin-bottom:2px">${e}</div>`).join('')}
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('monthModal').classList.add('open');
+}
+function closeMonthModal() { document.getElementById('monthModal').classList.remove('open'); }
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+function renderNotifs() {
+  const list = document.getElementById('notifsList');
+  const upcoming = [];
+
+  plants.forEach(p => {
+    [
+      { date: p.seedDate,       action: 'Čas vysévat',    emoji: '🌰' },
+      { date: p.transplantDate, action: 'Čas předsadit',  emoji: '🌿' },
+      { date: p.outsideDate,    action: 'Přesadit ven',   emoji: '🌞' },
+    ].forEach(ev => {
+      if (!ev.date) return;
+      const days = daysUntil(ev.date);
+      if (days >= -7 && days <= 30) {
+        upcoming.push({ plant: p, ...ev, days });
+      }
+    });
+  });
+
+  upcoming.sort((a,b) => a.days - b.days);
+
+  document.getElementById('statTotal').textContent = plants.length;
+  document.getElementById('statActive').textContent = plants.filter(p => !['planned','done'].includes(p.status)).length;
+  document.getElementById('statUpcoming').textContent = upcoming.filter(u => u.days >= 0 && u.days <= 7).length;
+
+  if (upcoming.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">Žádné nadcházející akce</div><div class="empty-sub">Přidej rostliny a nastav jim data výsevu a předsazení.</div></div>`;
+    return;
+  }
+
+  list.innerHTML = upcoming.map(u => {
+    let daysClass = 'ok', daysText = '';
+    if (u.days < 0) { daysClass = 'ok'; daysText = `před ${-u.days} dny`; }
+    else if (u.days === 0) { daysClass = 'urgent'; daysText = 'DNES!'; }
+    else if (u.days === 1) { daysClass = 'urgent'; daysText = 'ZÍTRA!'; }
+    else if (u.days <= 7) { daysClass = 'soon'; daysText = `za ${u.days} dní`; }
+    else { daysText = `za ${u.days} dní`; }
+
+    return `<div class="notif-item">
+      <div class="notif-icon">${u.emoji}</div>
+      <div class="notif-text">
+        <div class="notif-title">${u.plant.emoji} ${u.plant.name}</div>
+        <div class="notif-sub">${u.action} · ${fmtDate(u.date)}</div>
+      </div>
+      <div class="notif-days ${daysClass}">${daysText}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── PUSH NOTIFICATIONS ───────────────────────────────────────────────────────
+async function requestNotifPermission() {
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    document.getElementById('notifBar').style.display = 'none';
+    scheduleNotifications();
+    showToast('Notifikace povoleny! 🔔');
+  }
+}
+
+function scheduleNotifications() {
+  if (!('serviceWorker' in navigator) || Notification.permission !== 'granted') return;
+  const reminders = [];
+  plants.forEach(p => {
+    [
+      { date: p.seedDate,       action: 'Čas vysévat' },
+      { date: p.transplantDate, action: 'Čas předsadit' },
+      { date: p.outsideDate,    action: 'Přesadit ven' },
+    ].forEach(ev => {
+      if (ev.date) reminders.push({ id: p.id + ev.action, plant: p.emoji + ' ' + p.name, action: ev.action, date: ev.date });
+    });
+  });
+  navigator.serviceWorker.ready.then(reg => {
+    reg.active?.postMessage({ type: 'SCHEDULE_CHECK', reminders });
+  });
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  return Math.round((d - now) / 86400000);
+}
+
+function fmtDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('cs-CZ', { day:'numeric', month:'short' });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  // Register SW
+  if ('serviceWorker' in navigator) {
+    try {
+      await navigator.serviceWorker.register('./sw.js');
+    } catch(e) { console.warn('SW:', e); }
+  }
+
+  // Notif bar
+  if ('Notification' in window && Notification.permission === 'default') {
+    document.getElementById('notifBar').style.display = 'flex';
+  }
+  document.getElementById('filterChips').style.display = 'flex';
+
+  // Close modals on overlay click
+  document.getElementById('addModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+  document.getElementById('monthModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeMonthModal();
+  });
+
+  renderPlants();
+  scheduleNotifications();
+
+  // Daily notification check
+  setInterval(scheduleNotifications, 3600000);
+}
+
+init();
+</script>
+</body>
+</html>
